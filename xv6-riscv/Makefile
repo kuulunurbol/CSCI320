@@ -143,6 +143,8 @@ UPROGS=\
 	$U/_forphan\
 	$U/_dorphan\
 	$U/_getfilenum\
+	$U/_getpinfo\
+	$U/_hardwork\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

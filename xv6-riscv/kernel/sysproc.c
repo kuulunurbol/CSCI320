@@ -6,6 +6,8 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "vm.h"
+#include "pstat.h"
+int getpinfo(struct pstat *);
 
 uint64
 sys_exit(void)
@@ -112,4 +114,19 @@ sys_getfilenum(void)
   int pid;
   argint(0, &pid);         
   return ggetfilenum(pid);
+}
+
+uint64
+sys_getpinfo(void){
+  uint64 uptr;
+  argaddr(0, &uptr);
+  return ggetpinfo((struct pstat *)uptr);
+}
+
+uint64
+sys_setStride(void)
+{
+   int strideLength;
+  argint(0, &strideLength);
+  return setStride(strideLength);
 }

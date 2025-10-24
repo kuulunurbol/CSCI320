@@ -46,3 +46,90 @@ You will need a RISC-V "newlib" tool chain from
 https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
 riscv64-softmmu.  Once they are installed, and in your shell
 search path, you can run "make qemu".
+
+PROJECT 3
+
+FILES MODIFIED
+
+kernel/proc.h
+Added int stride and int pass to struct proc.
+
+kernel/proc.c
+Modified scheduler() to select process with lowest pass.
+Incremented pass and runtime each time process runs.
+Added overflow protection using MAX_PASS_TOTAL.
+
+kernel/sysproc.c
+Added sys_setStride system call to set stride from user input
+
+kernel/syscall.h, kernel/syscall.c
+Added SYS_setStride.
+
+user/hardwork.c
+Added and modified to accept stride value from command line and call setstride().
+
+user/getpinfo.c
+Updated to display pass and passTotal values to show information of running processes
+
+kernel/defs.h
+Added struct pstat and setStride
+
+Makefile
+Updated with new commands
+
+EXAMPLE RUN
+
+I ran four hardwork processes with different strides
+
+$ hardwork 1 &
+$ starting main
+initialized
+hardwork 5 &
+starting$ main
+ initialized
+hardwork 20 &
+starting$ main
+initialized
+ hardwork 2 &
+$starting main
+initialized
+ hardwork 25 &
+starting main
+initialized
+
+Then ran 'getpinfo' command
+
+$ getpinfo
+pid: 1, runtime: 28, pass: 2, stride: 1
+pid: 2, runtime: 26, pass: 6, stride: 1
+pid: 13, runtime: 5, pass: 5, stride: 1
+pid: 4, runtime: 249, pass: 87, stride: 1
+pid: 6, runtime: 165, pass: 295, stride: 5
+pid: 8, runtime: 80, pass: 300, stride: 20
+pid: 10, runtime: 87, pass: 173, stride: 2
+pid: 12, runtime: 13, pass: 301, stride: 25
+passTotal: 1171
+$ getpinfo
+pid: 1, runtime: 28, pass: 0, stride: 1
+pid: 2, runtime: 29, pass: 1, stride: 1
+pid: 14, runtime: 1, pass: 1, stride: 1
+pid: 4, runtime: 428, pass: 118, stride: 1
+pid: 6, runtime: 288, pass: 405, stride: 5
+pid: 8, runtime: 112, pass: 420, stride: 20
+pid: 10, runtime: 265, pass: 234, stride: 2
+pid: 12, runtime: 38, pass: 400, stride: 25
+passTotal: 1579
+$ getpinfo
+pid: 1, runtime: 28, pass: 0, stride: 1
+pid: 2, runtime: 32, pass: 1, stride: 1
+pid: 15, runtime: 1, pass: 1, stride: 1
+pid: 4, runtime: 2804, pass: 111, stride: 1
+pid: 6, runtime: 1931, pass: 380, stride: 5
+pid: 8, runtime: 526, pass: 380, stride: 20
+pid: 10, runtime: 2627, pass: 220, stride: 2
+pid: 12, runtime: 374, pass: 400, stride: 25
+passTotal: 1493
+
+Based on results, process with low stride gets most cpu time which causes less pass value
+And process with higher strides leads to less cpu time and higher pass value
+This clearly shows that program scheduler prioritizes processes with low stride value

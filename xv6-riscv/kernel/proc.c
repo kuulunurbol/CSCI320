@@ -5,6 +5,11 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "pstat.h"
+#define MAX_PASS_TOTAL 2000  // for fast testing I made max pass limit only 2000
+
+
+int passTotal = 0;
 
 struct cpu cpus[NCPU];
 
@@ -124,6 +129,10 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+   // Initialize runtime counter
+  p->runtime = 0;
+  p->pass = 0;
+  p->stride = 1;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -421,43 +430,65 @@ kwait(uint64 addr)
 void
 scheduler(void)
 {
-  struct proc *p;
   struct cpu *c = mycpu();
-
   c->proc = 0;
-  for(;;){
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting. Then turn them back off
-    // to avoid a possible race between an interrupt
-    // and wfi.
+
+  for (;;) {
     intr_on();
-    intr_off();
 
-    int found = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
+    // 1) Pick the RUNNABLE proc with the smallest pass.
+    struct proc *p, *chosen = 0;
+    int minPass = __INT_MAX__;
+
+    for (p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+      if (p->state == RUNNABLE && p->pass < minPass) {
+        minPass = p->pass;
+        chosen = p;
       }
       release(&p->lock);
     }
-    if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
+
+    if (chosen) {
+      int doReset = 0;
+
+      acquire(&chosen->lock);
+      if (chosen->state == RUNNABLE) {
+        // 2) Accounting
+        chosen->runtime += 1;
+        chosen->pass += chosen->stride;
+        passTotal += chosen->stride;
+
+        // mark if we need to reset after we’re done with this run
+        if (passTotal >= MAX_PASS_TOTAL)
+          doReset = 1;
+
+        // 3) Run it
+        chosen->state = RUNNING;
+        c->proc = chosen;
+        swtch(&c->context, &chosen->context);
+        c->proc = 0;
+      }
+      // We STILL hold chosen->lock here; swtch returns with it held.
+      release(&chosen->lock);
+
+      // 4) Perform pass reset AFTER releasing chosen->lock.
+      if (doReset) {
+        passTotal = 0;
+        for (p = proc; p < &proc[NPROC]; p++) {
+          acquire(&p->lock);
+          if (p->state != UNUSED)
+            p->pass = 0;
+          release(&p->lock);
+        }
+      }
+    } else {
+      // nothing runnable; wait for an interrupt
       asm volatile("wfi");
     }
   }
 }
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
@@ -706,4 +737,34 @@ ggetfilenum(int pid)
     release(&p->lock);
   }
   return -1; 
+}
+
+int ggetpinfo(struct pstat *pFromUser){
+  struct pstat pinfo; // local to kernel
+  for (int i=0; i < NPROC; ++i)
+   {
+    pinfo.inuse[i] = (proc[i].state != UNUSED);
+    pinfo.pid[i] = proc[i].pid;
+    pinfo.runtime[i] = proc[i].runtime;
+    pinfo.pass[i] = proc[i].pass; 
+    pinfo.stride[i] = proc[i].stride; 
+
+   }
+  pinfo.passTotal = passTotal; 
+ // now copy to user space from the pinfo structure
+  either_copyout(1, (uint64) pFromUser, &pinfo, sizeof(struct pstat));
+  return 0;
+}
+
+int
+setStride(int strideLength)
+{
+   struct proc *p = myproc();  // get the calling process
+
+  if (strideLength < 1) {
+    return -1; // invalid stride
+  }
+
+  p->stride = strideLength;
+  return 0;
 }
