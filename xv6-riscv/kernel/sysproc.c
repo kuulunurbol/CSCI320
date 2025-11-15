@@ -130,3 +130,19 @@ sys_setStride(void)
   argint(0, &strideLength);
   return setStride(strideLength);
 }
+
+
+uint64
+sys_pgaccess(void)
+{
+  uint64 startva;
+  int n;
+  uint64 user_mask_addr;
+
+  argaddr(0, &startva);
+  argint(1, &n);
+  argaddr(2, &user_mask_addr);
+
+  struct proc *p = myproc();
+  return pgaccess(p->pagetable, startva, n, user_mask_addr);
+}

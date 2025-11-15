@@ -104,6 +104,7 @@ extern uint64 sys_close(void);
 extern uint64 sys_getfilenum(void);
 extern uint64 sys_getpinfo(void);
 extern uint64 sys_setStride(void);
+extern uint64 sys_pgaccess(void);
 
 
 // An array mapping syscall numbers from syscall.h
@@ -133,6 +134,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_getfilenum]   sys_getfilenum,
 [SYS_getpinfo]     sys_getpinfo,  
 [SYS_setStride]    sys_setStride,
+[SYS_pgaccess]     sys_pgaccess,
 };
 
 void

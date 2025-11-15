@@ -133,3 +133,97 @@ passTotal: 1493
 Based on results, process with low stride gets most cpu time which causes less pass value
 And process with higher strides leads to less cpu time and higher pass value
 This clearly shows that program scheduler prioritizes processes with low stride value
+
+
+PROJECT 4
+
+FILES MODIFIED
+
+kernel/syscall.h
+added vmprint() and vmprintwalk()
+assigned a new syscall number to 'pgaccess'
+
+kernel/defs.h
+declared prototype void vmprint(pagetable_t pagetable);
+declared int pgaccess(pagetable_t, uint64, int, uint64);
+
+kernel/exec.c
+added 'if' condition
+
+kernel/riscv.h
+defined the access bit
+
+kernel/vm.c
+implemented the core function 'pgaccess'
+
+kernel/sysproc.c
+added the system call wrapper
+
+kernel/syscall.c
+registered 'pgaccess'
+
+user/user.h
+added prototype: int pgaccess(void *va, int n, void *mask);
+
+user/usys.pl
+added entry for pgaccess
+
+user/pgaccess_test.c
+added new test program
+
+Makefile
+added test program to UPROGS
+
+
+EXAMPLE RUN
+
+xv6 kernel is booting
+
+hart 2 starting
+hart 1 starting
+page table 0x0000000087f52000
+ ..0: pte 21fd3801 pa 87f4e000
+ .. ..0: pte 21fd3401 pa 87f4d000
+ .. .. ..0: pte 21fd3c1b pa 87f4f000
+ .. .. ..1: pte 21fd3017 pa 87f4c000
+ .. .. ..2: pte 21fd2c07 pa 87f4b000
+ .. .. ..3: pte 21fd2817 pa 87f4a000
+ ..255: pte 21fd4401 pa 87f51000
+ .. ..511: pte 21fd4001 pa 87f50000
+ .. .. ..510: pte 21fd5807 pa 87f56000
+ .. .. ..511: pte 2000180b pa 80006000
+init: starting sh
+$ pagetest
+Page 0, accessed: 1
+Page 1, accessed: 1
+Page 2, accessed: 1
+Page 3, accessed: 1
+Page 4, accessed: 1
+Page 5, accessed: 1
+Page 6, accessed: 1
+Page 7, accessed: 1
+Page 8, accessed: 1
+Page 9, accessed: 1
+Page 10, accessed: 1
+Page 11, accessed: 1
+Page 12, accessed: 1
+Page 13, accessed: 1
+Page 14, accessed: 1
+Page 15, accessed: 1
+Page 16, accessed: 1
+Page 17, accessed: 1
+Page 18, accessed: 1
+Page 19, accessed: 1
+Page 20, accessed: 1
+Page 21, accessed: 1
+Page 22, accessed: 1
+Page 23, accessed: 1
+Page 24, accessed: 1
+Page 25, accessed: 1
+Page 26, accessed: 1
+Page 27, accessed: 1
+Page 28, accessed: 1
+Page 29, accessed: 1
+Page 30, accessed: 1
+Page 31, accessed: 1
+$ 

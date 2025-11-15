@@ -45,3 +45,4 @@ entry("uptime");
 entry("getfilenum");
 entry("getpinfo");
 entry("setStride");
+entry("pgaccess");

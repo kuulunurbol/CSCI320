@@ -145,6 +145,7 @@ UPROGS=\
 	$U/_getfilenum\
 	$U/_getpinfo\
 	$U/_hardwork\
+	$U/_pagetest\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

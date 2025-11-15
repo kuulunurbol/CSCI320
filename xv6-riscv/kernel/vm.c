@@ -484,3 +484,63 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
+
+
+static void
+vmprintwalk(pagetable_t pagetable, int level)
+{
+  for (int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    if (pte & PTE_V) {
+      uint64 pa = PTE2PA(pte);
+
+      // Indent according to level
+      for (int j = 0; j < level + 1; j++) {
+        printf(" ..");
+      }
+
+      printf("%d: pte %lx pa %lx\n", i, pte, pa);
+
+      // If this entry points to another page table, recurse
+      if ((pte & (PTE_R | PTE_W | PTE_X)) == 0) {
+        vmprintwalk((pagetable_t)pa, level + 1);
+      }
+    }
+  }
+}
+
+
+void
+vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+  vmprintwalk(pagetable, 0);
+}
+
+// Report which pages in [va, va + n*PGSIZE) have been accessed.
+// Return 0 on success, -1 on error.
+int
+pgaccess(pagetable_t pagetable, uint64 va, int n, uint64 user_mask_addr)
+{
+  if (n > 32)    // limit to 32 pages (1 int bitmask)
+    return -1;
+
+  uint32 mask = 0;
+
+  for (int i = 0; i < n; i++) {
+    pte_t *pte = walk(pagetable, va + i * PGSIZE, 0);
+    if (pte == 0)
+      return -1;
+
+    if (*pte & PTE_A) {
+      mask |= (1 << i);      // set corresponding bit
+      *pte &= ~PTE_A;        // clear accessed bit
+    }
+  }
+
+  // Copy result to user buffer
+  if (copyout(pagetable, user_mask_addr, (char *)&mask, sizeof(mask)) < 0)
+    return -1;
+
+  return 0;
+}

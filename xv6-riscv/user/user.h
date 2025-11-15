@@ -28,6 +28,7 @@ int uptime(void);
 int getfilenum(int);
 int getpinfo(struct pstat *);
 int setStride(int);
+int pgaccess(void *va, int n, void *mask);
 
 
 // ulib.c
